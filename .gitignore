@@ -1,0 +1,6 @@
+.DS_Store
+__pycache__/
+*.bak*
+*.pyc
+# The private denylist never enters this repository.
+denylist*.txt

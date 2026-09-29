@@ -1,0 +1,35 @@
+# Architecture et parcours à livrer
+
+## Sources de vérité
+Séparer présentation (photos, textes, sections, typographie) et commerce (prix, stock, variantes, panier, remises). En mode Shopify, une panne doit afficher indisponibilité/erreur et conserver le panier, jamais inventer un prix local ni revenir silencieusement au mode démo. Les états SHOPIFY_ENABLED et CHECKOUT_ENABLED sont indépendants : on peut présenter un vrai catalogue avec paiement fermé.
+
+## Catalogue et fiches
+Créer la carte catalogue avant d'écrire les composants. Relier catégories, liste modèles, fiche modèle, choix de couleur, URL `?v=`, variante panier et images exactes. Un changement de couleur doit changer le bon SKU, la bonne photo, le prix et la disponibilité ensemble. Ne pas substituer la première variante disponible à un choix en rupture. Les accessoires sans variantes suivent une convention explicite, pas un fallback flou.
+
+Photos : image principale et hover ont leurs rôles distincts ; conserver cadrage/matière/coloris et éviter les faux logos. Contrôler listing, fiche, panier et recommandations. Les avis ou contenus de démonstration ne deviennent pas des avis clients réels en branchant Shopify. Éviter les textes internes de prévisualisation quand la boutique est réellement lancée, selon le périmètre autorisé.
+
+## Panier et paiement
+Employer Storefront Cart API, mutations côté serveur, cookie panier HttpOnly signé avec un secret long, erreurs normalisées et validation des quantités. Sérialiser les mutations client pour éviter qu'un double clic écrase la réponse précédente. Un panier serveur expiré doit être recréé/reconcilié explicitement. Les montants source et remises doivent venir des coûts Shopify et non de prix inventés dans React. Une conversion indicative explicitement autorisée peut présenter ces montants dans une autre devise ; elle doit garder le montant source, afficher sa nature estimative et ne jamais être réinjectée dans le panier ou le paiement.
+
+Relier lineId Shopify et GID de merchandise à la clé UI. Tester ajout, suppression, quantité, deux coloris du même modèle, rupture après ajout, actualisation et navigation. Contrôler le total du drawer ET de la page panier. Les URLs checkout doivent être HTTPS et sur un hôte validé, aucune redirection arbitraire fournie par le client.
+
+Checkout fermé : répondre avec l'état prévu et un message utile, ne pas ouvrir les paiements pour réussir un test. Avant ouverture : entreprise/légal, moyens de paiement, livraison, marchés, taxes, stock réel et politique de vente validés par le marchand. Ne jamais ajouter du stock fictif pour faire passer un smoke test ; tester sold_out est correct si le stock réel est zéro.
+
+## Réductions, cadeaux et personnalisation
+Un code visuel n'est pas une réduction Shopify. Tester l'application et le retrait des conditions : quantité minimale, produit éligible, boîte cadeau ajoutée, cumul, deuxième article, suppression d'une ligne. Réserver une récompense est possible avant lancement mais doit être annoncé comme tel. Ne pas stocker un code Admin dans le navigateur pour créer les promos à la volée.
+
+Une personnalisation de produit (un écrin, par exemple) doit survivre au panier et être disponible à l'équipe qui prépare la commande. Définir fichier, taille/formats, stockage durable, transformation d'aperçu, line attributes/metafield, validation et workflow de fabrication. Un canvas d'aperçu seul n'est pas une personnalisation commandable. Tant que le parcours réel n'est pas prêt, le bloquer honnêtement plutôt que perdre les fichiers au checkout.
+
+## Langues, devise, emails
+La traduction ne convertit pas une devise. Distinguer deux fonctions avant de construire un sélecteur : conversion **indicative d'affichage**, ou vrais prix/paiement dans une autre devise. Ne pas imposer une configuration Shopify Markets à un simple convertisseur indicatif explicitement autorisé. Pour proposer un vrai parcours commercial multidevise, configurer au contraire les marchés, le contexte des prix et le checkout appropriés, puis vérifier que catalogue, panier et paiement renvoient les mêmes montants/devises côté Shopify.
+
+Une conversion indicative conserve la source commerciale : montant EUR fiable → taux d'affichage → estimation avec `≈`, explication accessible, référence EUR au panier et paiement EUR clairement indiqué. Ne jamais transmettre le montant converti aux mutations du panier ou au checkout. Ne pas appliquer un taux EUR à un montant source déjà non-EUR : garder la devise source ou utiliser une conversion explicitement conçue/testée pour cette source. Donnée absente ou panne API reste une indisponibilité, pas une estimation à partir de prix de démonstration.
+
+Cas de la boutique horlogère, sur demande explicite de Sam : sept devises d'affichage (l'euro et six devises étrangères) sélectionnables sur mobile et desktop, ancien contrat `verrou` retiré du provider/layout. `PrixCommerce`, catalogue/fiches, panier/tiroir et affichage des offres de démo partagent le choix mémorisé ; affichage `≈` hors EUR et référence EUR au panier. Shopify reste l'autorité des montants, prix/stock/variantes inchangés, paiement en euros et `CHECKOUT_ENABLED=false` conservés. Les taux existants sont figés, sans date/source certifiée dans le code : les qualifier d'indicatifs et ne pas les présenter comme des taux actuels ou bancaires garantis. Aucune configuration Markets, mutation commerciale ou dépense supplémentaire n'est implicite.
+
+Pour les menus mobiles, tenir compte du moteur de scroll global : sur la boutique horlogère, `data-lenis-prevent` et gestion molette/touchmove aux bornes évitent que Lenis ou le navigateur fassent défiler la page derrière la liste. Conserver l'inertie interne, la position de page à la fermeture, les cibles 44 px et le focus clavier. Drapeau à gauche du code langue mobile ; aucun drapeau dans le bouton devise mobile selon la demande, sans supprimer les drapeaux des listes. Tester les sept choix, persistance, cohérence catalogue/fiche/panier, scroll interne et viewport 320 px. Les textes d'erreur, consentements, panier et popup sont traduits avec le reste.
+
+Séparer newsletter, contact, capture de récompense et consentement marketing. Base persistante isolée par client, preuve de consentement, pas de succès si non conservé. Les segments « achat », « panier abandonné », « cadeau inutilisé » nécessitent des faits : un événement checkout_started ne prouve ni paiement ni abandon. Pour les automatisations post-achat, brancher les webhooks réellement vérifiés, signatures et idempotence ; ne pas prétendre qu'elles existent parce qu'une fonction segmentOf est présente.
+
+## Liste de recette
+Catalogue conforme, prix issus Shopify, variantes et images correctes, produits indisponibles traités, panier cohérent, paiement fermé/ouvert selon décision, récompenses réelles ou réservation explicitée, personnalisation conservée ou désactivée, consentements non cochés, erreurs réseau visibles, export protégé, hero testable et popup hors hero, FR/EN et mobile court. Exécuter les tests métier avant build puis contrôler l'URL publiée ; conserver ce qui est non testé dans le rapport.

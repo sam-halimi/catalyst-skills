@@ -1,0 +1,8 @@
+# Accepted values, one regular expression per line.
+# Commit attribution address.
+noreply@anthropic\.com
+noreply\.github\.com
+# Documentation placeholders.
+example\.(com|org|fr)
+exemple\.(com|fr)
+<[a-z-]+>\.vercel\.app
